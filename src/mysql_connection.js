@@ -21,10 +21,7 @@ class Connection {
     }
 
     execute(sql, params) {
-        const conn = this.pool.getConnection();
-        return conn.then((c) => {
-            return c.execute(sql, params);
-        });
+        return this.pool.query(sql, params);
     }
 }
 
