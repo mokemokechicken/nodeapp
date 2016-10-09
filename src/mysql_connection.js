@@ -6,31 +6,24 @@
 // get the client
 const mysql = require('mysql2/promise');
 const config = require('./config');
-let connection = null;
+let pool = null;
 
 class Connection {
     constructor(conn=null) {
-        if (!conn && !connection) {
-            this.newConnection();
+        if (!pool) {
+            this.newPool();
         }
-        this.conn = conn || connection;
-        this.retry = 0;
     }
 
-    newConnection() {
-        connection = mysql.createConnection(config.db_connection);
-        return connection;
+    newPool() {
+        this.pool = mysql.createPool(config.db_connection);
+        pool = this.pool;
     }
 
     execute(sql, params) {
-        return this.conn.then((c) => {
-            if (!c.connection.stream.connecting && !c.connection.stream.readable) {
-                console.log("re-connecting to MySQL...");
-                this.conn = this.newConnection();
-                return this.execute(sql, params)
-            } else {
-                return c.execute(sql, params);
-            }
+        const conn = this.pool.getConnection();
+        return conn.then((c) => {
+            return c.execute(sql, params);
         });
     }
 }
