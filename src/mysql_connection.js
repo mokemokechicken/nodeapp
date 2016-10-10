@@ -9,15 +9,15 @@ const config = require('./config');
 let pool = null;
 
 class Connection {
-    constructor(conn=null) {
+    constructor() {
         if (!pool) {
             this.newPool();
         }
+        this.pool = pool;
     }
 
     newPool() {
-        this.pool = mysql.createPool(config.db_connection);
-        pool = this.pool;
+        pool = mysql.createPool(config.db_connection);
     }
 
     execute(sql, params) {

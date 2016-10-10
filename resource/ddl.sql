@@ -12,7 +12,7 @@ CREATE TABLE users (
 
 CREATE TABLE articles (
   id               bigint AUTO_INCREMENT,
-  author_id        bigint,
+  author_id        bigint NOT NULL,
   title            text,
   content          text,
   like_count       int unsigned default 0,
@@ -24,8 +24,8 @@ CREATE TABLE articles (
 
 CREATE TABLE likes (
   id               bigint AUTO_INCREMENT,
-  article_id       bigint,
-  user_id          bigint,
+  article_id       bigint NOT NULL,
+  user_id          bigint NOT NULL,
   create_timestamp timestamp DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY (user_id, article_id),
