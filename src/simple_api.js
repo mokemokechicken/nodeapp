@@ -15,7 +15,7 @@ function selectApi(connection, sql, params, res, next, cb, first_row_only) {
           res.send(result);
         }
       } else {
-        res.send(404);
+        res.send(204);
       }
     };
   }
@@ -35,7 +35,7 @@ function updateApi(connection, sql, params, res, next, cb) {
   if (!cb) {
     cb = ([info, _]) => {
       if (info.changedRows == 0) {
-        res.send(404);
+        res.send(404, "target update resource not found");
       } else {
         res.send(200);
       }
@@ -49,7 +49,7 @@ function deleteApi(connection, sql, params, res, next, cb) {
   if (!cb) {
     cb = ([info, _]) => {
       if (info.affectedRows == 0) {
-        res.send(404);
+        res.send(404, "target deletion resource not found");
       } else {
         res.send(200);
       }

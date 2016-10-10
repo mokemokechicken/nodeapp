@@ -11,17 +11,30 @@ let pool = null;
 class Connection {
     constructor() {
         if (!pool) {
-            this.newPool();
+            pool = mysql.createPool(config.db_connection);
         }
         this.pool = pool;
     }
 
-    newPool() {
-        pool = mysql.createPool(config.db_connection);
-    }
-
     execute(sql, params) {
         return this.pool.query(sql, params);
+    }
+
+    transaction(prm) {
+        return this.pool.getConnection()
+          .then((conn) =>
+            conn.query("START TRANSACTION", [])
+              .then(() => prm(conn))
+              .then((result) => {
+                  conn.release();
+                  return result;
+              })
+              .catch((err) => {
+                  conn.release();
+                  return Promise.reject(err);
+              })
+          )
+          ;
     }
 }
 

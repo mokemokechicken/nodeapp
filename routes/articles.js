@@ -33,7 +33,7 @@ router.get('/:article_id', function(req, res, next) { // 注意： limit の有�
     simpleApi.selectApi(connection, sql, [article_id, limit], res, next);
   } else {
     const sql = "SELECT * FROM articles WHERE id = ?";
-    simpleApi.selectApi(connection, sql, [article_id], res, next);
+    simpleApi.selectApi(connection, sql, [article_id], res, next, null, true);
   }
 });
 
@@ -64,21 +64,84 @@ router.delete('/:article_id', function(req, res, next) {
 });
 
 
+//
 // Likes
+//
+
 router.get('/:article_id/likes', function(req, res, next) {
-  res.send('GET Likes article_id=' + req.params.article_id);
+  const article_id = req.params.article_id;
+  const sql = "SELECT user_id FROM likes WHERE article_id = ?";
+  simpleApi.selectApi(connection, sql, [article_id], res, next);
 });
 
 router.put('/:article_id/likes/:user_id', function(req, res, next) {
-  res.send('PUT article_id=' + req.params.article_id + ' user_id=' + req.params.user_id);
+  const article_id = req.params.article_id;
+  const user_id = req.params.user_id;
+  const sql = "SELECT COUNT(*) as cnt FROM likes WHERE article_id = ? AND user_id = ?";
+
+  const prm = connection.execute(sql, [article_id, user_id]).then(([results, _ ]) => {
+    if (results[0]["cnt"] > 0) {
+      return res.send(200, "already liked");
+    }
+
+    return connection.transaction((conn) =>
+      conn.execute("INSERT INTO likes(article_id, user_id) VALUES(?, ?)", [article_id, user_id])
+        .then(([info, _]) =>
+          conn.execute("UPDATE articles SET like_count = like_count + 1 WHERE id = ?", [article_id])
+        )
+        .then(([info, _]) =>
+          conn.execute("COMMIT")
+        )
+        .catch(() => {
+          conn.execute("ROLLBACK");
+          return Promise.reject("rollback");
+        })
+    )
+      .then(() => res.send(201))
+      .catch((err) => res.send(500, err))
+      ;
+  });
+
+  wrap_promise(next, prm);
 });
 
 router.get('/:article_id/likes/:user_id', function(req, res, next) {
-  res.send('GET article_id=' + req.params.article_id + ' user_id=' + req.params.user_id);
+  const article_id = req.params.article_id;
+  const user_id = req.params.user_id;
+  const sql = "SELECT * FROM likes WHERE article_id = ? AND user_id = ?";
+
+  simpleApi.selectApi(connection, sql, [article_id, user_id], res, next, null, true);
 });
 
 router.delete('/:article_id/likes/:user_id', function(req, res, next) {
-  res.send('DELETE article_id=' + req.params.article_id + ' user_id=' + req.params.user_id);
+  const article_id = req.params.article_id;
+  const user_id = req.params.user_id;
+  const sql = "SELECT COUNT(*) as cnt FROM likes WHERE article_id = ? AND user_id = ?";
+
+  const prm = connection.execute(sql, [article_id, user_id]).then(([results, _ ]) => {
+    if (results[0]["cnt"] == 0) {
+      return res.send(404, "target resource not found");
+    }
+
+    return connection.transaction((conn) =>
+      conn.execute("DELETE FROM likes WHERE article_id = ? AND user_id = ?", [article_id, user_id])
+        .then(([info, _]) =>
+          conn.execute("UPDATE articles SET like_count = like_count - 1 WHERE id = ?", [article_id])
+        )
+        .then(([info, _]) =>
+          conn.execute("COMMIT")
+        )
+        .catch(() => {
+          conn.execute("ROLLBACK");
+          return Promise.reject("rollback");
+        })
+    )
+      .then(() => res.send(200))
+      .catch((err) => res.send(500, err))
+      ;
+  });
+
+  wrap_promise(next, prm);
 });
 
 module.exports = router;
