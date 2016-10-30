@@ -11,6 +11,9 @@ router.get('/', function(req, res, next) {
 });
 
 router.all('*', function(req, res, next) {
+  if (externalApiEndpoint == "-") {
+    return next();
+  }
   rp({url: externalApiEndpoint, forever: true})
     .then((body) => {
       if (String(body).trim() == externalApiResponse) {
