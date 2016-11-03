@@ -139,9 +139,9 @@ class ScenarioTask(TaskSet):
     def scenario(self):
         self.create_user()
         self.get_user()
-        if self.probability(0.01):
+        if self.probability(0.5):
             self.update_user(str("name-%s" % random()))
-        if self.probability(0.1):
+        if self.probability(0.5):
             self.create_article(self.user_id, "title-%s" % self.user_id, "content!" * 1024)
         self.get_latest_article()
 
@@ -161,7 +161,7 @@ class ScenarioTask(TaskSet):
             if self.probability(0.01):
                 self.delete_article(article_id)
 
-        if self.probability(0.001):
+        if self.probability(0.01):
             self.delete_user(self.user_id)
 
 
