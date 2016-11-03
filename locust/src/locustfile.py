@@ -171,10 +171,13 @@ class ScenarioTask(TaskSet):
                 self.put_like(article_id, self.user_id)
             if self.probability(0.1):
                 self.delete_like(article_id, self.user_id)
+
             if self.probability(0.01):
+                article_id = sample(self.article_id_set, 1)[0]
                 self.update_article(article_id, article['author_id'], "update-title:" + article['title'],
                                     "update-content:" + article['content'])
             if self.probability(0.01):
+                article_id = sample(self.article_id_set, 1)[0]
                 self.delete_article(article_id)
 
         if self.probability(0.01):
