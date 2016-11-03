@@ -76,6 +76,7 @@ class ScenarioTask(TaskSet):
     BASE_PATH = "/api"
     user_id = None
     articles = None
+    article_id_set = set()
 
     def on_start(self):
         self.user_id = None
@@ -159,8 +160,11 @@ class ScenarioTask(TaskSet):
 
         for i in range(10):
             articles = self.get_latest_articles(10)
-            article = sample(articles, 1)[0]
-            article_id = article['id']
+            for article in articles:
+                self.article_id_set.add(article['id'])
+            if len(self.article_id_set) > 1000:
+                self.article_id_set = set(sample(self.article_id_set, 1000))
+            article_id = sample(self.article_id_set, 1)[0]
             self.get_likes(article_id)
             liked = self.get_like_of_mine(article_id, self.user_id)
             if not liked:
