@@ -154,7 +154,7 @@ class ScenarioTask(TaskSet):
         if self.probability(0.5):
             self.update_user(str("name-%s" % random()))
         if self.probability(0.5):
-            self.create_article(self.user_id, "title-%s" % self.user_id, "content!" * 1024)
+            self.create_article(self.user_id, "title-%s" % self.user_id, "content!" * 200)
         self.get_latest_article()
 
         for i in range(10):
