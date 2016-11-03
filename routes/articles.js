@@ -77,40 +77,48 @@ router.get('/:article_id/likes', function(req, res, next) {
 router.put('/:article_id/likes/:user_id', function(req, res, next) {
   const article_id = req.params.article_id;
   const user_id = req.params.user_id;
-  const sql = "SELECT SUM(IF(user_id=?,1,0)) as liked, COUNT(*) as num  FROM likes WHERE article_id = ?;";
+  const sql0 = "SELECT COUNT(*) as cnt FROM articles WHERE id = ?";
+  const sql1 = "SELECT COUNT(*) as cnt FROM likes WHERE article_id = ? AND user_id = ?";
 
-  const prm = connection.execute(sql, [user_id, article_id]).then(([results, _ ]) => {
-    if (results[0]["liked"] > 0) {
-      return res.send(200, "already liked");
-    }
+  let xx = 1;
 
-    if (results[0]['num'] == 0) {
-      res.status(404);
-      return res.send('the article is not found')
-    }
-
-    let xx = 1;
-    return connection.transaction((conn) =>
-      conn.execute("INSERT INTO likes(article_id, user_id) VALUES(?, ?)", [article_id, user_id])
-        .then(([info, _]) => {
-          xx = 2;
-          return conn.execute("UPDATE articles SET like_count = like_count + 1 WHERE id = ?", [article_id])
-        })
-        .then(([info, _]) => {
-          xx = 3;
-          return conn.execute("COMMIT")
-        })
-        .catch((err) => {
-          console.log(`xx=${xx}: ${err}`);
-          return conn.execute("ROLLBACK")
-            .then(() => Promise.reject(err))
-            .catch(() => Promise.reject(err))
-        })
-    )
+  console.log("AAA=1");
+  const prm =
+    connection.execute(sql0, [article_id])
+      .then(([results, _]) => {
+        console.log("AAA=2");
+        if (results[0]["cnt"] == 0) {
+          res.send(404, "the article not found");
+          return Promise.reject();
+        }
+        return connection.execute(sql1, [article_id, user_id]);
+      })
+      .then(([results, _ ]) => {
+        console.log("AAA=3");
+        if (results[0]["cnt"] > 0) {
+          return res.send(200, "already liked");
+        }
+        return connection.transaction((conn) =>
+          conn.execute("INSERT INTO likes(article_id, user_id) VALUES(?, ?)", [article_id, user_id])
+            .then(([info, _]) => {
+              xx = 2;
+              return conn.execute("UPDATE articles SET like_count = like_count + 1 WHERE id = ?", [article_id])
+            })
+            .then(([info, _]) => {
+              xx = 3;
+              return conn.execute("COMMIT")
+            })
+            .catch((err) => {
+              console.log(`xx=${xx}: ${err}`);
+              return conn.execute("ROLLBACK")
+                .then(() => Promise.reject(err))
+                .catch(() => Promise.reject(err))
+            })
+        )
+      })
       .then(() => res.send(201))
       .catch((err) => res.send(500, err))
       ;
-  });
 
   wrap_promise(next, prm);
 });
