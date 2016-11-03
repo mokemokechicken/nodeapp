@@ -132,7 +132,10 @@ class ScenarioTask(TaskSet):
         user_id = user_id or self.user_id
         with self.client.get("%s/articles/%s/likes/%s" % (self.BASE_PATH, article_id, user_id),
                              name='/articles/[ID]/likes/[ID]', catch_response=True) as response:
-            return response.status_code == 200
+            if response.status_code == 404:
+                return None
+            else:
+                return response.status_code == 200
 
     def put_like(self, article_id, user_id=None):
         user_id = user_id or self.user_id
@@ -167,10 +170,12 @@ class ScenarioTask(TaskSet):
             article_id = sample(self.article_id_set, 1)[0]
             self.get_likes(article_id)
             liked = self.get_like_of_mine(article_id, self.user_id)
-            if not liked:
-                self.put_like(article_id, self.user_id)
-            if self.probability(0.1):
-                self.delete_like(article_id, self.user_id)
+
+            if liked is not None:
+                if not liked:
+                    self.put_like(article_id, self.user_id)
+                if self.probability(0.1):
+                    self.delete_like(article_id, self.user_id)
 
             if self.probability(0.01):
                 article_id = sample(self.article_id_set, 1)[0]

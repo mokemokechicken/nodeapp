@@ -123,9 +123,26 @@ router.put('/:article_id/likes/:user_id', function(req, res, next) {
 router.get('/:article_id/likes/:user_id', function(req, res, next) {
   const article_id = req.params.article_id;
   const user_id = req.params.user_id;
-  const sql = "SELECT * FROM likes WHERE article_id = ? AND user_id = ?";
+  const sql0 = "SELECT COUNT(*) as cnt FROM articles WHERE id = ?";
+  const sql1 = "SELECT COUNT(*) as cnt FROM likes WHERE article_id = ? AND user_id = ?";
 
-  simpleApi.selectApi(connection, sql, [article_id, user_id], res, next, null, true);
+  const prm =
+    connection.execute(sql0, [article_id])
+      .then(([results, _]) => {
+        if (results[0]["cnt"] == 0) {
+          res.send(404, "the article not found");
+          return Promise.reject();
+        }
+        return connection.execute(sql1, [article_id, user_id]);
+      })
+      .then(([results, _ ]) => {
+        if (results[0]["cnt"] > 0) {
+          return res.send(200, "already liked");
+        } else {
+          return res.send(204);
+        }
+      });
+  wrap_promise(next, prm);
 });
 
 router.delete('/:article_id/likes/:user_id', function(req, res, next) {
