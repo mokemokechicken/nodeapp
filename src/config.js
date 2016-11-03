@@ -6,6 +6,7 @@ const config = {
     db_connection: {
         host: process.env.DB_HOST || 'localhost',
         user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASS,
         database: process.env.DB_NAME || 'nodeapp',
         connectionLimit: Number(process.env.CONNECTION_LIMIT || 5)
     }
