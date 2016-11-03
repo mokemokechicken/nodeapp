@@ -10,6 +10,18 @@ MAX_WAIT = 1
 MAX_USER_ID = 10000
 
 
+class NginxFileTask(TaskSet):
+    @task
+    def static_file(self):
+        self.client.get("/status.txt", name="status.txt")
+
+
+class NginxFileOnly(HttpLocust):
+    task_set = NginxFileTask
+    min_wait = MIN_WAIT
+    max_wait = MAX_WAIT
+
+
 class StaticFileTask(TaskSet):
     @task
     def static_file(self):
