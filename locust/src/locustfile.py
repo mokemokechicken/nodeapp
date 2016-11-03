@@ -179,6 +179,7 @@ class ScenarioTask(TaskSet):
             if self.probability(0.01):
                 article_id = sample(self.article_id_set, 1)[0]
                 self.delete_article(article_id)
+                self.article_id_set.remove(article_id)
 
         if self.probability(0.01):
             self.delete_user(self.user_id)

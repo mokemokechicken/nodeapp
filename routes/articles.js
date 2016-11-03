@@ -77,26 +77,35 @@ router.get('/:article_id/likes', function(req, res, next) {
 router.put('/:article_id/likes/:user_id', function(req, res, next) {
   const article_id = req.params.article_id;
   const user_id = req.params.user_id;
-  const sql = "SELECT COUNT(*) as cnt FROM likes WHERE article_id = ? AND user_id = ?";
+  const sql = "SELECT SUM(IF(user_id=?,1,0)) as liked, COUNT(*) as num  FROM likes WHERE article_id = ?;";
 
-  const prm = connection.execute(sql, [article_id, user_id]).then(([results, _ ]) => {
-    if (results[0]["cnt"] > 0) {
+  const prm = connection.execute(sql, [user_id, article_id]).then(([results, _ ]) => {
+    if (results[0]["liked"] > 0) {
       return res.send(200, "already liked");
     }
 
+    if (results[0]['num'] == 0) {
+      res.status(404);
+      return res.send('the article is not found')
+    }
+
+    let xx = 1;
     return connection.transaction((conn) =>
       conn.execute("INSERT INTO likes(article_id, user_id) VALUES(?, ?)", [article_id, user_id])
-        .then(([info, _]) =>
-          conn.execute("UPDATE articles SET like_count = like_count + 1 WHERE id = ?", [article_id])
-        )
-        .then(([info, _]) =>
-          conn.execute("COMMIT")
-        )
-        .catch((err) =>
-          conn.execute("ROLLBACK")
+        .then(([info, _]) => {
+          xx = 2;
+          return conn.execute("UPDATE articles SET like_count = like_count + 1 WHERE id = ?", [article_id])
+        })
+        .then(([info, _]) => {
+          xx = 3;
+          return conn.execute("COMMIT")
+        })
+        .catch((err) => {
+          console.log(`xx=${xx}: ${err}`);
+          return conn.execute("ROLLBACK")
             .then(() => Promise.reject(err))
             .catch(() => Promise.reject(err))
-        )
+        })
     )
       .then(() => res.send(201))
       .catch((err) => res.send(500, err))
