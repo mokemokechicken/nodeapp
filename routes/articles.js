@@ -92,10 +92,11 @@ router.put('/:article_id/likes/:user_id', function(req, res, next) {
         .then(([info, _]) =>
           conn.execute("COMMIT")
         )
-        .catch(() => {
-          conn.execute("ROLLBACK");
-          return Promise.reject("rollback");
-        })
+        .catch((err) =>
+          conn.execute("ROLLBACK")
+            .then(() => Promise.reject(err))
+            .catch(() => Promise.reject(err))
+        )
     )
       .then(() => res.send(201))
       .catch((err) => res.send(500, err))
@@ -131,10 +132,11 @@ router.delete('/:article_id/likes/:user_id', function(req, res, next) {
         .then(([info, _]) =>
           conn.execute("COMMIT")
         )
-        .catch(() => {
-          conn.execute("ROLLBACK");
-          return Promise.reject("rollback");
-        })
+        .catch((err) =>
+          conn.execute("ROLLBACK")
+            .then(() => Promise.reject(err))
+            .catch(() => Promise.reject(err))
+        )
     )
       .then(() => res.send(200))
       .catch((err) => res.send(500, err))
