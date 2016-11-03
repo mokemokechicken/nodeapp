@@ -82,11 +82,9 @@ router.put('/:article_id/likes/:user_id', function(req, res, next) {
 
   let xx = 1;
 
-  console.log("AAA=1");
   const prm =
     connection.execute(sql0, [article_id])
       .then(([results, _]) => {
-        console.log("AAA=2");
         if (results[0]["cnt"] == 0) {
           res.send(404, "the article not found");
           return Promise.reject();
@@ -94,7 +92,6 @@ router.put('/:article_id/likes/:user_id', function(req, res, next) {
         return connection.execute(sql1, [article_id, user_id]);
       })
       .then(([results, _ ]) => {
-        console.log("AAA=3");
         if (results[0]["cnt"] > 0) {
           return res.send(200, "already liked");
         }
