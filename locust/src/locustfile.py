@@ -188,7 +188,8 @@ class ScenarioTask(TaskSet):
 
             if self.probability(0.01):
                 article_id = sample(self.article_id_set, 1)[0]
-                if self.get_article(article_id):
+                article = self.get_article(article_id)
+                if article:
                     self.update_article(article_id, article['author_id'], "update-title:" + article['title'],
                                         "update-content:" + article['content'])
                 else:
