@@ -169,9 +169,9 @@ router.delete('/:article_id/likes/:user_id', function(req, res, next) {
             .catch(() => Promise.reject(err))
         )
     )
-      .then(() => res.send(200))
-      .catch((err) => res.send(500, err))
-      ;
+    .then(() => res.send(200))
+    .catch((err) => res.send(500, err))
+    ;
   });
 
   wrap_promise(next, prm);

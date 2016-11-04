@@ -75,12 +75,10 @@ class WriteOnly(HttpLocust):
 class ScenarioTask(TaskSet):
     BASE_PATH = "/api"
     user_id = None
-    articles = None
     article_id_set = set()
 
     def on_start(self):
         self.user_id = None
-        self.articles = None
 
     def create_user(self, name=None):
         name = name or "name-%s" % randint(1, 1000000000)
@@ -107,15 +105,22 @@ class ScenarioTask(TaskSet):
         data = dict(author_id=author_id, title=title, content=content)
         self.client.post("%s/articles/" % (self.BASE_PATH,), data=data, name='/articles/')
 
-    def get_latest_article(self):
-        self.client.get("%s/articles/" % (self.BASE_PATH,), name='/articles/')
+    def get_article(self, article_id):
+        with self.client.get("%s/articles/%s" % (self.BASE_PATH, article_id), name="/articles/[ID]", catch_response=True) as response:
+            if response.status_code == 200:
+                return response.json()
+            else:
+                return None
 
-    def get_latest_articles(self, limit=10):
+    def get_latest_article(self):
+        with self.client.get("%s/articles/" % (self.BASE_PATH,), name='/articles/', catch_response=True) as response:
+            return response.json()
+
+    def get_latest_articles(self, limit=10, from_article_id=""):
         params = dict(limit=limit)
-        with self.client.get("%s/articles/" % (self.BASE_PATH,), params=params, name='/articles/?limit=X',
-                             catch_response=True) as response:
-            self.articles = json.loads(response.content)
-        return self.articles
+        with self.client.get("%s/articles/%s" % (self.BASE_PATH, from_article_id), params=params,
+                             name='/articles/?limit=X', catch_response=True) as response:
+            return response.json()
 
     def update_article(self, article_id, author_id=None, title=None, content=None):
         author_id = author_id or self.user_id
@@ -151,6 +156,12 @@ class ScenarioTask(TaskSet):
     def probability(p):
         return random() <= p
 
+    def remember_articles(self, articles):
+        for article in articles:
+            self.article_id_set.add(article['id'])
+        if len(self.article_id_set) > 1000:
+            self.article_id_set = set(sample(self.article_id_set, 1000))
+
     @task(1)
     def scenario(self):
         self.create_user()
@@ -159,31 +170,34 @@ class ScenarioTask(TaskSet):
             self.update_user(str("name-%s" % random()))
         if self.probability(0.5):
             self.create_article(self.user_id, "title-%s" % self.user_id, "content!" * 200)
-        self.get_latest_article()
+        self.remember_articles(self.get_latest_article())
 
         for i in range(10):
-            articles = self.get_latest_articles(10)
-            for article in articles:
-                self.article_id_set.add(article['id'])
-            if len(self.article_id_set) > 1000:
-                self.article_id_set = set(sample(self.article_id_set, 1000))
             article_id = sample(self.article_id_set, 1)[0]
-            self.get_likes(article_id)
-            liked = self.get_like_of_mine(article_id, self.user_id)
-
-            if liked is not None:
+            self.remember_articles(self.get_latest_articles(limit=10, from_article_id=article_id))
+            article_id = sample(self.article_id_set, 1)[0]
+            if self.get_article(article_id):
+                self.get_likes(article_id)
+                liked = self.get_like_of_mine(article_id, self.user_id)
                 if not liked:
                     self.put_like(article_id, self.user_id)
                 if self.probability(0.1):
                     self.delete_like(article_id, self.user_id)
+            else:
+                self.article_id_set.remove(article_id)
 
             if self.probability(0.01):
                 article_id = sample(self.article_id_set, 1)[0]
-                self.update_article(article_id, article['author_id'], "update-title:" + article['title'],
-                                    "update-content:" + article['content'])
+                if self.get_article(article_id):
+                    self.update_article(article_id, article['author_id'], "update-title:" + article['title'],
+                                        "update-content:" + article['content'])
+                else:
+                    self.article_id_set.remove(article_id)
+
             if self.probability(0.01):
                 article_id = sample(self.article_id_set, 1)[0]
-                self.delete_article(article_id)
+                if self.get_article(article_id):
+                    self.delete_article(article_id)
                 self.article_id_set.remove(article_id)
 
         if self.probability(0.01):
