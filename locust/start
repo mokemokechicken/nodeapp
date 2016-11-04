@@ -1,0 +1,14 @@
+#!/bin/sh
+
+N=${1:-1}
+
+API_HOST=${API_HOST:-http://172.31.12.215:3000}
+TASK=${TASK:-Scenario}
+
+locust -f src/locustfile.py --host=$API_HOST --master $TASK &
+
+while [ "$N" -gt 0 ];
+do
+  N=$(expr $N - 1)
+  locust -f src/locustfile.py --host=$API_HOST --slave $TASK &
+done
